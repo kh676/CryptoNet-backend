@@ -8,6 +8,7 @@ const bodyParser = require("body-parser");
 //------models----------------
 const User = require("./model/UserModel");
 const Admin = require("./model/AdminModel");
+const Crypto = require("./model/cryptocurrency");
 //-----------------------------
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
@@ -24,7 +25,7 @@ mongoose
     console.log(" not connected");
   });
 //---------registration user api part----------------
-app.post("/register/user", (req, res) => {
+app.put("/register/user", (req, res) => {
   const username = req.body.username;
   const email = req.body.email;
   const password = req.body.password;
@@ -36,10 +37,10 @@ app.post("/register/user", (req, res) => {
       password: encrptedPassword,
     })
       .then((saved) => {
-        res.json(saved);
+        res.status(201).json(saved);
       })
       .catch((err) => {
-        res.json({ err: err.message });
+        res.status(401).json({ err: err.message });
       });
   });
 });
@@ -69,16 +70,16 @@ app.post("/login/user", (req, res) => {
                 expiresIn: "1h",
               }
             );
-            res.json({ token: token });
+            res.status(201).json({ token: token });
           } else {
             res.status(401).json({ error: "incurect password" });
           }
         })
         .catch((error) => {
-          res.json({ err: err.message });
+          res.status(404).json({ err: err.message });
         })
         .catch((error) => {
-          res.json({ err: err.message });
+          res.status(404).json({ err: err.message });
         });
     });
 });
@@ -91,12 +92,12 @@ const islogin = (req, res, next) => {
     res.locals.object = object;
     next();
   } catch (err) {
-    res.json({ errorMessage: "you most log in ^-^" });
+    res.status(401).json({ errorMessage: "you most log in ^-^" });
   }
 };
 
 ////-----------Update user--------------------------------
-app.post("/user/update/:id", islogin, (req, res) => {
+app.put("/user/update/:id", islogin, (req, res) => {
   const id = req.params.id;
   const username = req.body.username;
   const email = req.body.email;
@@ -111,7 +112,7 @@ app.post("/user/update/:id", islogin, (req, res) => {
         res.json("user updated");
       })
       .catch((error) => {
-        res.json({ err: err.message });
+        res.status(404).json({ err: err.message });
       });
   });
 });
@@ -120,14 +121,14 @@ app.delete("/user/delete/:id", islogin, (req, res) => {
   const id = req.params.id;
   User.findByIdAndDelete(id)
     .then(() => {
-      res.json("user deleted");
+      res.status(201).json("user deleted");
     })
     .catch(() => {
-      res.json(" cant find the user :(");
+      res.status(404).json(" cant find the user :(");
     });
 });
 ///-------Admin part--------------------------------------
-app.post("/register/admin", (req, res) => {
+app.put("/register/admin", (req, res) => {
   const username = "admin";
   const email = "admin@gmail.com";
   const password = "000";
@@ -139,10 +140,10 @@ app.post("/register/admin", (req, res) => {
       password: encrptedPassword,
     })
       .then((saved) => {
-        res.json(saved);
+        res.status(201).json(saved);
       })
       .catch((err) => {
-        res.json({ err: err.message });
+        res.status(404).json({ err: err.message });
       });
   });
 });
@@ -154,7 +155,7 @@ app.post("/login/admin", (req, res) => {
     .select("+password")
     .then((foundAdmin) => {
       if (!foundAdmin) {
-        res.json({ message: "Admin not found....!!" });
+        res.status(404).json({ message: "Admin not found....!!" });
         return;
       }
       const encrptedPassword = foundAdmin.password;
@@ -173,21 +174,21 @@ app.post("/login/admin", (req, res) => {
               }
             );
 
-            res.json({ token: token });
+            res.status(201).json({ token: token });
           } else {
-            res.status(401).json({ error: "incurect password" });
+            res.status(404).json({ error: "incorrect password" });
           }
         })
         .catch((error) => {
-          res.send({ error: err.message });
+          res.status(401).json({ error: err.message });
         })
         .catch((error) => {
-          res.send({ error: err.message });
+          res.status(401).json({ error: err.message });
         });
     });
 });
 //-----------------update admin----------------------------
-app.post("/admin/update/:id", islogin, (req, res) => {
+app.put("/admin/update/:id", islogin, (req, res) => {
   const id = req.params.id;
   const username = req.body.username;
   const email = req.body.email;
@@ -199,10 +200,10 @@ app.post("/admin/update/:id", islogin, (req, res) => {
       password: encrptedPassword,
     })
       .then(() => {
-        res.json("Admin updated");
+        res.status(201).json("Admin updated");
       })
       .catch((error) => {
-        res.json({ error: err.message });
+        res.status(404).json({ error: err.message });
       });
   });
 });
@@ -211,23 +212,69 @@ app.delete("/admin/delete/:id", islogin, (req, res) => {
   const id = req.params.id;
   Admin.findByIdAndDelete(id)
     .then(() => {
-      res.json("admin deleted");
+      res.status(200).json("admin deleted");
     })
     .catch(() => {
-      res.json(" cant find the admin :(");
+      res.status(404).json(" cant find the admin :(");
     });
 });
 //--------------All users--------------------------------
-app.get("/allusers", (req, res) => {
+app.get("/allusers", islogin, (req, res) => {
   User.find().then((users) => {
-    res.json({ users: users });
+    res.status(200).json({ users: users });
   });
 });
 //-----------All admins----------------------------------
-app.get("/alladmins", (req, res) => {
-  Admin.find().then((admins) => {
-    res.json({ admins: admins });
-  });
+//app.get("/alladmins",islogin, (req, res) => {
+// Admin.find().then((admins) => {
+// res.status(200).json({ admins: admins });
+//  });
+//});
+//-------------cryptocurrency part----------------------------
+app.put("/new/crypto", islogin, (req, res) => {
+  const name = req.body.name;
+  const description = req.body.description;
+  const price = req.body.price;
+  Crypto.create({
+    name: name,
+    description: description,
+    price: price,
+  })
+    .then((crypto) => {
+      res.status(200).json(crypto);
+    })
+    .catch((error) => {
+      res.status(401).json(error.message);
+    });
+});
+//------------delete cryptocurrency---------------------------------------
+app.delete("/crypto/delete/:id", islogin, (req, res) => {
+  const id = req.params.id;
+  Crypto.findByIdAndDelete(id)
+    .then(() => {
+      res.status(200).json("cryptocurrency deleted");
+    })
+    .catch((error) => {
+      res.status(404).json(error.message);
+    });
+});
+//--------------update cryptocurrency------------------------------------
+app.put("/crypto/update/:id", islogin, (req, res) => {
+  const id = req.params.id;
+  const name = req.body.name;
+  const description = req.body.description;
+  const price = req.body.price;
+  Crypto.findByIdAndUpdate(id, {
+    name: name,
+    description: description,
+    price: price,
+  })
+    .then(() => {
+      res.status(201).json("Crypto updated");
+    })
+    .catch((error) => {
+      res.status(404).json({ err: err.message });
+    });
 });
 //-----------open port-----------------------------------
 app.listen(9000, (req, res) => {
