@@ -9,7 +9,10 @@ const bodyParser = require("body-parser");
 const User = require("./model/UserModel");
 const Admin = require("./model/AdminModel");
 const Crypto = require("./model/cryptocurrency");
+const Wallet = require("./model/Wallet");
 //-----------------------------
+const cors = require("cors");
+app.use(cors({ origin: "http://localhost:5173" }));
 app.use(bodyParser.urlencoded({ extended: false }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -274,6 +277,49 @@ app.put("/crypto/update/:id", islogin, (req, res) => {
     })
     .catch((error) => {
       res.status(404).json({ err: err.message });
+    });
+});
+//--------------wallet part------------------------------
+app.put("/new/wallet", islogin, (req, res) => {
+  const balance = req.body.balance;
+  const address = req.body.address;
+  Wallet.create({
+    balance: balance,
+    address: address,
+  })
+    .then((Wallet) => {
+      res.status(200).json(Wallet);
+    })
+    .catch((error) => {
+      res.status(401).json(error.message);
+    });
+});
+//---------- update wallet-------------------------------
+app.put("/wallet/update/:id", islogin, (req, res) => {
+  const id = req.params.id;
+  const balance = req.body.balance;
+  const address = req.body.address;
+
+  Wallet.findByIdAndUpdate(id, {
+    balance: balance,
+    address: address,
+  })
+    .then(() => {
+      res.status(201).json("Wallet updated");
+    })
+    .catch((error) => {
+      res.status(404).json({ err: err.message });
+    });
+});
+//--------------delete wallet----------------------------
+app.delete("/wallet/delete/:id", islogin, (req, res) => {
+  const id = req.params.id;
+  Wallet.findByIdAndDelete(id)
+    .then(() => {
+      res.status(200).json("wallet deleted");
+    })
+    .catch((error) => {
+      res.status(404).json(error.message);
     });
 });
 //-----------open port-----------------------------------
